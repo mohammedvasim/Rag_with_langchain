@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+langchain
+langchain-community 
+groq 
+langchain-groq
+openai
+langchain-openai
+faiss-cpu
+sentence-transformers
+
+
+--extra-index-url https://download.pytorch.org/whl/cpu
