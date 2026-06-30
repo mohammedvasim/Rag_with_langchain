@@ -1,13 +1,7 @@
 fastapi
 uvicorn
 langchain
-langchain-community 
-groq 
+langchain-community
 langchain-groq
-openai
-langchain-openai
+langchain-ollama
 faiss-cpu
-sentence-transformers
-
-
---extra-index-url https://download.pytorch.org/whl/cpu

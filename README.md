@@ -1,49 +1,67 @@
 # RAG Pipeline with LangChain
 
-This project demonstrates a simple yet powerful Retrieval-Augmented Generation (RAG) pipeline built using LangChain. It loads a local text document, processes it into a searchable format, and uses a Large Language Model (LLM) via Groq to answer questions based *only* on the provided context.
+This project demonstrates a Retrieval-Augmented Generation (RAG) pipeline built using LangChain. It loads a local text document, processes it into a searchable format, and uses a Large Language Model (LLM) via Groq to answer questions based *only* on the provided context. A FastAPI server exposes the pipeline via a REST API.
 
-## 🚀 Features
+## Features
 
 - **Document Loading:** Reads text from a local file (`my_document.txt`).
-- **Text Splitting:** Chunks the document into smaller, manageable pieces using `RecursiveCharacterTextSplitter` to handle LLM context window limits and improve retrieval accuracy.
-- **Local Embeddings:** Generates embeddings locally using Hugging Face's `all-MiniLM-L6-v2` model (via `sentence-transformers`). This means no external API calls are made for embedding generation, ensuring privacy and speed.
-- **Vector Database:** Uses **FAISS** (Facebook AI Similarity Search) to store the document embeddings and efficiently retrieve the most relevant chunks when a question is asked.
-- **LLM Integration:** Connects to **Groq** to leverage the incredibly fast `llama3-8b-8192` model for generating answers.
-- **LCEL Chain:** Uses the modern LangChain Expression Language (LCEL) to build the retrieval and QA chain seamlessly.
+- **Text Splitting:** Chunks the document using `RecursiveCharacterTextSplitter` (500 chars, 50 overlap) to handle LLM context window limits and improve retrieval accuracy.
+- **Local Embeddings:** Generates embeddings locally using Ollama's `nomic-embed-text` model via `OllamaEmbeddings`. No external API calls are made for embedding generation.
+- **Vector Database:** Uses **FAISS** to store document embeddings and efficiently retrieve the most relevant chunks.
+- **LLM Integration:** Connects to **Groq** using the `llama-3.1-8b-instant` model for fast answer generation.
+- **FastAPI Server:** Exposes the RAG pipeline via a `POST /query` endpoint.
+- **Jupyter Notebook:** `main1.ipynb` provides a step-by-step walkthrough of the pipeline using HuggingFace embeddings as an alternative approach.
 
-## 🛠️ Prerequisites
-
-Before running the code, ensure you have the necessary dependencies installed and your environment variables set up.
+## Prerequisites
 
 1. **Install Dependencies:**
-   Make sure your virtual environment is activated, then run:
    ```bash
    pip install -r requirements.txt
    ```
 
-2. **Environment Variables:**
-   You need a Groq API key to use their LLM. Create a `.env` file in the root directory and add your key:
+2. **Ollama (for local embeddings):**
+   Install [Ollama](https://ollama.ai/) and pull the embedding model:
+   ```bash
+   ollama pull nomic-embed-text
+   ```
+
+3. **Environment Variables:**
+   Create a `.env` file in the root directory and add your Groq API key:
    ```env
    GROQ_API_KEY="your_actual_groq_api_key_here"
    ```
 
-## 🏗️ Pipeline Overview (How it works)
+## Running the Server
 
-Here is a step-by-step breakdown of the flow in the Jupyter Notebook (`main1.ipynb`):
+```bash
+python main.py
+```
 
-1. **Environment Setup:** Loads the Groq API key from the `.env` file securely.
-2. **Data Ingestion:** Loads the source material (`my_document.txt`) using LangChain's `TextLoader`.
-3. **Chunking:** Splits the loaded document into 500-character chunks with a 50-character overlap. The overlap ensures that context isn't lost if a sentence is split across two chunks.
-4. **Vector Store Creation:** 
-   - Initializes `HuggingFaceEmbeddings` to convert text chunks into numerical vectors.
-   - Creates a FAISS vector store to index these embeddings for fast searching.
-5. **Retriever Setup:** Configures the FAISS index as a retriever to fetch the top `k=5` most similar chunks when given a query.
-6. **LLM & Prompt Formulation:** 
-   - Initializes the `ChatGroq` model.
-   - Sets up a `ChatPromptTemplate` that explicitly instructs the LLM to answer the user's question using *only* the retrieved context.
-7. **Chain Construction (LCEL):** 
-   - Connects the retriever to fetch context based on the user's input.
-   - Formats the retrieved documents and passes them along with the question into the prompt.
-   - Feeds the prompt to the Groq LLM.
-   - Parses the output into a clean string using `StrOutputParser`.
-8. **Execution:** Invokes the chain with a user query (e.g., *"How many spiderman movies are there till date?"*) and prints the synthesized response.
+The server starts at `http://0.0.0.0:8000`. Send a query via:
+
+```bash
+curl -X POST http://localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "How many Spider-Man movies are there?"}'
+```
+
+## Project Structure
+
+| File | Description |
+|------|-------------|
+| `rag.py` | Core RAG logic: document loading, chunking, embeddings, vector store, LCEL chain |
+| `main.py` | FastAPI app entry point |
+| `endpoints.py` | API router with `POST /query` endpoint |
+| `main1.ipynb` | Jupyter notebook with alternative HuggingFace-based implementation |
+| `my_document.txt` | Source document about Spider-Man |
+
+## Pipeline Overview
+
+1. **Environment Setup** — Loads Groq API key from `.env`
+2. **Data Ingestion** — Loads `my_document.txt` via `TextLoader`
+3. **Chunking** — Splits into 500-character chunks with 50-character overlap
+4. **Embeddings** — Converts chunks to vectors using Ollama's `nomic-embed-text`
+5. **Vector Store** — Indexes embeddings in FAISS for similarity search (top `k=5`)
+6. **Prompt** — Instructs the LLM to answer using *only* the retrieved context
+7. **LCEL Chain** — Connects retriever → prompt → Groq LLM → string output
+8. **Response** — Returns the answer via the API
