@@ -10,11 +10,13 @@ from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
+from langsmith import traceable
 
 llm = ChatGroq(model="llama-3.1-8b-instant", api_key=groq_api_key)
 
 _chain = None
 
+@traceable
 def _init_chain():
     from langchain_community.document_loaders import TextLoader
     from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -55,6 +57,7 @@ def _init_chain():
         | StrOutputParser()
     )
 
+@traceable
 async def get_rag_response(query: str):
     global _chain
     if _chain is None:
